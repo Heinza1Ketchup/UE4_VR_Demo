@@ -5,11 +5,13 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SplineComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "NavigationSystem.h"
+#include "Kismet/GameplayStatics.h"
 /* VR Includes */
 #include "HeadMountedDisplay.h"
 #include "MotionControllerComponent.h"
@@ -23,12 +25,24 @@ AVRCharacter::AVRCharacter()
 	VROriginComp = CreateDefaultSubobject<USceneComponent>(TEXT("VROriginComp"));
 	VROriginComp->SetupAttachment(GetRootComponent());
 
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
-	Camera->SetupAttachment(VROriginComp);
-	
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DestinationMarker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());
 
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
+	Camera->SetupAttachment(VROriginComp);
+	//
+	LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftController"));
+	LeftController->SetupAttachment(VROriginComp);
+	LeftController->SetTrackingSource(EControllerHand::Left);
+	//LeftController->bDisplayDeviceModel = true;
+	RightController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightController"));
+	RightController->SetupAttachment(VROriginComp);
+	RightController->SetTrackingSource(EControllerHand::Right);
+	//RightController->bDisplayDeviceModel = true;
+
+
+	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("Destination"));
+	TeleportPath->SetupAttachment(RightController);
 
 
 	SprintSpeedMultiplier = 1.55f;
@@ -97,39 +111,69 @@ void AVRCharacter::Tick(float DeltaTime)
 	}
 	
 }
-bool AVRCharacter::FindTeleportDestination(FVector &OutLocation)
-{
-	FVector Start = Camera->GetComponentLocation();
-	FVector End = Start + Camera->GetForwardVector() * MaxTeleportDistance;
-	FHitResult HitResult;
 
-	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility);
-	if(!bHit) { return false; }
-
-	FNavLocation NavLocation;
-	//GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(HitResult.Location, NavLocation, TeleportProjectExtent);
-	bool bOnNavMesh = UNavigationSystemV1::GetCurrent(GetWorld())->ProjectPointToNavigation(HitResult.Location, NavLocation, TeleportProjectExtent);
-	if(!bOnNavMesh){ return false; }
-
-	OutLocation = NavLocation.Location;
-	return bOnNavMesh && bHit;
-}
-
+//Teleportation destination 
 void AVRCharacter::UpdateDestinationMarker()
 {
+	TArray<FVector> Path;
 	FVector Location;
 	//
-	bool bHasDestination = FindTeleportDestination(Location);
-	
+	bool bHasDestination = FindTeleportDestination(Path, Location);
+
 	if (bHasDestination)
 	{
 		DestinationMarker->SetVisibility(true);
 		DestinationMarker->SetWorldLocation(Location);
+		UpdateSplineTeleport(Path);
 	}
 	else {
 		DestinationMarker->SetVisibility(false);
 	}
 }
+bool AVRCharacter::FindTeleportDestination(TArray<FVector> &OutPath, FVector &OutLocation)
+{
+	FVector Start = RightController->GetComponentLocation();
+	FVector Look = RightController->GetForwardVector();
+	//FVector End = Start + Look * MaxTeleportDistance;
+
+	FPredictProjectilePathParams Params(TeleportProjectileRadius, Start, Look * TeleportProjectileSpeed, TeleportSimulationTime, ECollisionChannel::ECC_Visibility, this);
+	Params.DrawDebugType = EDrawDebugTrace::ForOneFrame;
+	//Params.bTraceComplex = true; //optional for testing
+
+	//FHitResult HitResult;
+	//bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility);
+	FPredictProjectilePathResult Result;
+	bool bHit = UGameplayStatics::PredictProjectilePath(this, Params, Result);
+
+	if (!bHit) { return false; }
+
+	for (FPredictProjectilePathPointData PointData : Result.PathData)
+	{
+		OutPath.Add(PointData.Location);
+	}
+
+	FNavLocation NavLocation;
+	//GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(HitResult.Location, NavLocation, TeleportProjectExtent);
+	bool bOnNavMesh = UNavigationSystemV1::GetCurrent(GetWorld())->ProjectPointToNavigation(Result.HitResult.Location, NavLocation, TeleportProjectExtent);
+
+	if (!bOnNavMesh) { return false; }
+
+	OutLocation = NavLocation.Location;
+	return bOnNavMesh && bHit;
+}
+void AVRCharacter::UpdateSplineTeleport(const TArray<FVector> &Path)
+{
+	TeleportPath->ClearSplinePoints(false);
+	for (int32 i = 0; i < Path.Num(); i++)
+	{
+		FVector LocalPosition = TeleportPath->GetComponentTransform().InverseTransformPosition(Path[i]);
+		FSplinePoint Point(i, LocalPosition, ESplinePointType::Curve);
+		TeleportPath->AddPoint(Point, false);
+
+	}
+	TeleportPath->UpdateSpline();
+}
+//
 void AVRCharacter::BeginTeleport()
 {
 	TeleportHeld = true;

@@ -32,7 +32,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	//Player
+	//Player Camera
 	UPROPERTY(Visibleanywhere, BlueprintReadOnly, Category = "Components")
 	class UCameraComponent* Camera;
 	/* Component to specify origin for the HMD */
@@ -42,12 +42,25 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UStaticMeshComponent* DestinationMarker;
 
+	//Player Controllers
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UMotionControllerComponent* LeftController;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UMotionControllerComponent* RightController;
+
+	//spline
+	UPROPERTY(VisibleAnywhere)
+	class USplineComponent* TeleportPath;
+
+
 	//teleport
-	bool FindTeleportDestination(FVector &OutLocation);
+	bool FindTeleportDestination(TArray<FVector> &OutPath, FVector &OutLocation);
+	void UpdateSplineTeleport(const TArray<FVector> &Path);
 	void UpdateDestinationMarker();
 	void BeginTeleport();
 	void EndTeleport();
 	void FinishTeleport();
+	
 
 	//movement
 	void MoveForward(float Value);
@@ -69,6 +82,15 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	float MaxTeleportDistance = 1000;
+
+	UPROPERTY(EditAnywhere)
+	float TeleportProjectileSpeed = 800;
+
+	UPROPERTY(EditAnywhere)
+	float TeleportProjectileRadius = 10;
+
+	UPROPERTY(EditAnywhere)
+	float TeleportSimulationTime = 2;
 
 	UPROPERTY(EditAnywhere)
 	float TeleportFadeTime = 0.25f;
