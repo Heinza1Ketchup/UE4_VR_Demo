@@ -1,11 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "VRCharacter.h"
+#include "HandController.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SplineComponent.h"
+#include "Components/SplineMeshComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/World.h"
@@ -30,19 +32,9 @@ AVRCharacter::AVRCharacter()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	Camera->SetupAttachment(VROriginComp);
-	//
-	LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftController"));
-	LeftController->SetupAttachment(VROriginComp);
-	LeftController->SetTrackingSource(EControllerHand::Left);
-	//LeftController->bDisplayDeviceModel = true;
-	RightController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightController"));
-	RightController->SetupAttachment(VROriginComp);
-	RightController->SetTrackingSource(EControllerHand::Right);
-	//RightController->bDisplayDeviceModel = true;
 
-
-	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("Destination"));
-	TeleportPath->SetupAttachment(RightController);
+	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
+	TeleportPath->SetupAttachment(VROriginComp);
 
 
 	SprintSpeedMultiplier = 1.55f;
@@ -53,9 +45,24 @@ void AVRCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	LeftController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
+	if (LeftController != nullptr) {
+		LeftController->AttachToComponent(VROriginComp, FAttachmentTransformRules::KeepRelativeTransform);
+		LeftController->SetOwner(this);
+		LeftController->SetHand(EControllerHand::Left);
+	}
+	RightController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
+	if (RightController != nullptr) {
+		RightController->AttachToComponent(VROriginComp, FAttachmentTransformRules::KeepRelativeTransform);
+		RightController->SetOwner(this);
+		RightController->SetHand(EControllerHand::Right);
+	}
 	//teleportation ring toggle
 	DestinationMarker->SetVisibility(false);
 	TeleportHeld = false;
+
+	
+
 }
 
 // Called to bind functionality to input
@@ -108,7 +115,14 @@ void AVRCharacter::Tick(float DeltaTime)
 	//
 	if (TeleportHeld) {
 		UpdateDestinationMarker();
+	} 
+	else {
+		DestinationMarker->SetVisibility(false);
+
+		TArray<FVector> EmptyPath;
+		DrawTeleportPath(EmptyPath);
 	}
+	
 	
 }
 
@@ -124,20 +138,25 @@ void AVRCharacter::UpdateDestinationMarker()
 	{
 		DestinationMarker->SetVisibility(true);
 		DestinationMarker->SetWorldLocation(Location);
-		UpdateSplineTeleport(Path);
+		
+		//UpdateSplineTeleport(Path);
+		DrawTeleportPath(Path);
 	}
 	else {
 		DestinationMarker->SetVisibility(false);
+
+		TArray<FVector> EmptyPath;
+		DrawTeleportPath(EmptyPath);
 	}
 }
 bool AVRCharacter::FindTeleportDestination(TArray<FVector> &OutPath, FVector &OutLocation)
 {
-	FVector Start = RightController->GetComponentLocation();
-	FVector Look = RightController->GetForwardVector();
+	FVector Start = RightController->GetActorLocation();
+	FVector Look = RightController->GetActorForwardVector();
 	//FVector End = Start + Look * MaxTeleportDistance;
 
 	FPredictProjectilePathParams Params(TeleportProjectileRadius, Start, Look * TeleportProjectileSpeed, TeleportSimulationTime, ECollisionChannel::ECC_Visibility, this);
-	Params.DrawDebugType = EDrawDebugTrace::ForOneFrame;
+	//Params.DrawDebugType = EDrawDebugTrace::ForOneFrame;
 	//Params.bTraceComplex = true; //optional for testing
 
 	//FHitResult HitResult;
@@ -161,6 +180,34 @@ bool AVRCharacter::FindTeleportDestination(TArray<FVector> &OutPath, FVector &Ou
 	OutLocation = NavLocation.Location;
 	return bOnNavMesh && bHit;
 }
+void AVRCharacter::DrawTeleportPath(const TArray<FVector> &Path)
+{
+	UpdateSplineTeleport(Path);
+
+	for (USplineMeshComponent* SplineMesh : TeleportPathMeshPool) {
+		SplineMesh->SetVisibility(false);
+	}
+
+	int32 SegmentNum = Path.Num() - 1;
+	for (int32 i = 0; i < SegmentNum; ++i) {
+		if (TeleportPathMeshPool.Num() <= i) {
+			USplineMeshComponent* SplineMesh = NewObject<USplineMeshComponent>(this);
+			SplineMesh->SetMobility(EComponentMobility::Movable);
+			SplineMesh->AttachToComponent(TeleportPath, FAttachmentTransformRules::KeepRelativeTransform);
+			SplineMesh->SetStaticMesh(TeleportArchMesh);
+			SplineMesh->SetMaterial(0, TeleportArchMat);
+			SplineMesh->RegisterComponent();
+			TeleportPathMeshPool.Add(SplineMesh);
+		}
+		USplineMeshComponent* SplineMesh = TeleportPathMeshPool[i];
+		SplineMesh->SetVisibility(true);
+
+		FVector StartPos, StartTangent, EndPos, EndTangent;
+		TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i, StartPos, StartTangent);
+		TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i + 1, EndPos, EndTangent);
+		SplineMesh->SetStartAndEnd(StartPos, StartTangent, EndPos, EndTangent, true);
+	}
+}
 void AVRCharacter::UpdateSplineTeleport(const TArray<FVector> &Path)
 {
 	TeleportPath->ClearSplinePoints(false);
@@ -169,6 +216,7 @@ void AVRCharacter::UpdateSplineTeleport(const TArray<FVector> &Path)
 		FVector LocalPosition = TeleportPath->GetComponentTransform().InverseTransformPosition(Path[i]);
 		FSplinePoint Point(i, LocalPosition, ESplinePointType::Curve);
 		TeleportPath->AddPoint(Point, false);
+		
 
 	}
 	TeleportPath->UpdateSpline();
@@ -195,7 +243,9 @@ void AVRCharacter::EndTeleport()
 }
 void AVRCharacter::FinishTeleport()
 {
-	SetActorLocation(DestinationMarker->GetComponentLocation() + GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+	FVector Destination = DestinationMarker->GetComponentLocation();
+	Destination += GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * GetActorUpVector();
+	SetActorLocation(Destination);
 
 	//start fade
 	APlayerController* PC = Cast<APlayerController>(GetController());

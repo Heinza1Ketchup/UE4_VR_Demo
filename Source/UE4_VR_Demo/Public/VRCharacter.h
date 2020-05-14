@@ -9,6 +9,7 @@
 class UCameraComponent;
 class UMotionControllerComponent;
 class UStaticMeshComponent;
+class UMaterialInterface;
 
 UCLASS()
 class UE4_VR_DEMO_API AVRCharacter : public ACharacter
@@ -42,11 +43,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UStaticMeshComponent* DestinationMarker;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TArray<class USplineMeshComponent*> TeleportPathMeshPool;
+
+
 	//Player Controllers
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class UMotionControllerComponent* LeftController;
+	class AHandController* LeftController;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class UMotionControllerComponent* RightController;
+	class AHandController* RightController;
 
 	//spline
 	UPROPERTY(VisibleAnywhere)
@@ -55,6 +60,7 @@ protected:
 
 	//teleport
 	bool FindTeleportDestination(TArray<FVector> &OutPath, FVector &OutLocation);
+	void DrawTeleportPath(const TArray<FVector> &Path);
 	void UpdateSplineTeleport(const TArray<FVector> &Path);
 	void UpdateDestinationMarker();
 	void BeginTeleport();
@@ -79,7 +85,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
-
+	//configuration
 	UPROPERTY(EditAnywhere)
 	float MaxTeleportDistance = 1000;
 
@@ -97,6 +103,15 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	FVector TeleportProjectExtent = FVector(100.f, 100.f, 100.f);
+
+	UPROPERTY(EditDefaultsOnly)
+	class UStaticMesh* TeleportArchMesh;
+
+	UPROPERTY(EditDefaultsOnly)
+	class UMaterialInterface* TeleportArchMat;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AHandController> HandControllerClass;
 };
 
 
