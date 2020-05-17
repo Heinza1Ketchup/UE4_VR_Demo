@@ -2,6 +2,7 @@
 
 #include "VRCharacter.h"
 #include "HandController.h"
+#include "UE4_VR_Demo.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -14,9 +15,12 @@
 #include "TimerManager.h"
 #include "NavigationSystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+#include "DrawDebugHelpers.h"
 /* VR Includes */
 #include "HeadMountedDisplay.h"
 #include "MotionControllerComponent.h"
+
 
 // Sets default values
 AVRCharacter::AVRCharacter()
@@ -30,12 +34,23 @@ AVRCharacter::AVRCharacter()
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DestinationMarker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());
 
+	UGameplayStatics::SpawnSoundAttached(FireSoundCue, RootComponent);
+
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	Camera->SetupAttachment(VROriginComp);
 
-	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
-	TeleportPath->SetupAttachment(VROriginComp);
+	LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftController"));
+	LeftController->SetupAttachment(VROriginComp);
+	LeftController->SetTrackingSource(EControllerHand::Left);
+	RightController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightController"));
+	RightController->SetupAttachment(VROriginComp);
+	RightController->SetTrackingSource(EControllerHand::Right);
+	
+	ManipulatableR = CreateDefaultSubobject<USceneComponent>(TEXT("ManipSceneComp"));
+	ManipulatableR->SetupAttachment(RightController);
 
+	//TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
+	//TeleportPath->SetupAttachment(VROriginComp);
 
 	SprintSpeedMultiplier = 1.55f;
 }
@@ -45,23 +60,25 @@ void AVRCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	LeftController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
-	if (LeftController != nullptr) {
-		LeftController->AttachToComponent(VROriginComp, FAttachmentTransformRules::KeepRelativeTransform);
-		LeftController->SetOwner(this);
-		LeftController->SetHand(EControllerHand::Left);
-	}
-	RightController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
+	
+	/*RightController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
 	if (RightController != nullptr) {
 		RightController->AttachToComponent(VROriginComp, FAttachmentTransformRules::KeepRelativeTransform);
 		RightController->SetOwner(this);
 		RightController->SetHand(EControllerHand::Right);
 	}
-	//teleportation ring toggle
-	DestinationMarker->SetVisibility(false);
+	LeftController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
+	if (LeftController != nullptr) {
+		LeftController->AttachToComponent(VROriginComp, FAttachmentTransformRules::KeepRelativeTransform);
+		LeftController->SetOwner(this);
+		LeftController->SetHand(EControllerHand::Left);
+	}*/
+	
+
+	//Teleportation ring toggle
 	TeleportHeld = false;
 
-	
+	//DestinationMarker->SetVisibility(false);
 
 }
 
@@ -77,6 +94,7 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AVRCharacter::Jump);
 	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AVRCharacter::BeginTeleport);
 	PlayerInputComponent->BindAction("Teleport", IE_Released, this, &AVRCharacter::EndTeleport);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AVRCharacter::Fire);
 }
 
 void AVRCharacter::MoveForward(float Value)
@@ -104,14 +122,12 @@ void AVRCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//
-	
 	FVector NewCameraOffset = Camera->GetComponentLocation() - GetActorLocation();
 	NewCameraOffset.Z = 0;
 	AddActorWorldOffset(NewCameraOffset);
-
-
 	VROriginComp->AddWorldOffset(-(NewCameraOffset));
 	
+
 	//
 	if (TeleportHeld) {
 		UpdateDestinationMarker();
@@ -119,9 +135,11 @@ void AVRCharacter::Tick(float DeltaTime)
 	else {
 		DestinationMarker->SetVisibility(false);
 
-		TArray<FVector> EmptyPath;
-		DrawTeleportPath(EmptyPath);
+		//TArray<FVector> EmptyPath;
+		//DrawTeleportPath(EmptyPath);
 	}
+	
+	
 	
 	
 }
@@ -140,19 +158,23 @@ void AVRCharacter::UpdateDestinationMarker()
 		DestinationMarker->SetWorldLocation(Location);
 		
 		//UpdateSplineTeleport(Path);
-		DrawTeleportPath(Path);
+		//DrawTeleportPath(Path);
 	}
-	else {
+	/*else {
 		DestinationMarker->SetVisibility(false);
 
 		TArray<FVector> EmptyPath;
 		DrawTeleportPath(EmptyPath);
-	}
+	}*/
 }
 bool AVRCharacter::FindTeleportDestination(TArray<FVector> &OutPath, FVector &OutLocation)
 {
-	FVector Start = RightController->GetActorLocation();
-	FVector Look = RightController->GetActorForwardVector();
+
+	//FVector Start = RightController->GetActorLocation();
+	//FVector Look = RightController->GetActorForwardVector();
+	FVector Start = RightController->GetComponentLocation();
+	FVector Look = RightController->GetForwardVector();
+	//Look = Look.RotateAngleAxis(30, RightController->GetRightVector());
 	//FVector End = Start + Look * MaxTeleportDistance;
 
 	FPredictProjectilePathParams Params(TeleportProjectileRadius, Start, Look * TeleportProjectileSpeed, TeleportSimulationTime, ECollisionChannel::ECC_Visibility, this);
@@ -251,5 +273,35 @@ void AVRCharacter::FinishTeleport()
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (PC != nullptr) {
 		PC->PlayerCameraManager->StartCameraFade(1, 0, TeleportFadeTime, FLinearColor::White);
+	}
+}
+//
+void AVRCharacter::Fire()
+{
+	FHitResult HitResult;
+	FVector Start = RightController->GetComponentLocation();
+	FVector Look = RightController->GetForwardVector();
+	FVector End = Start + Look * BulletRange;
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+	QueryParams.bTraceComplex = true;
+	QueryParams.bReturnPhysicalMaterial = true;
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, COLLISION_WEAPON, QueryParams);
+
+	if (bHit) {
+		AActor* Hit = HitResult.GetActor();
+		EPhysicalSurface SufraceType = UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
+
+
+		DrawDebugLine(GetWorld(), Start, End, FColor::White, false, 1.0f, 0, 1.0f);
+
+		if (Hit->IsRootComponentMovable()) {
+			//Hit->AddActorWorldOffset(Hit->GetActorForwardVector() + Look * 100.f);
+			
+			
+		}
+		UGameplayStatics::PlaySoundAtLocation(this, FireSoundCue, GetActorLocation());
 	}
 }

@@ -10,6 +10,7 @@ class UCameraComponent;
 class UMotionControllerComponent;
 class UStaticMeshComponent;
 class UMaterialInterface;
+class USoundCue;
 
 UCLASS()
 class UE4_VR_DEMO_API AVRCharacter : public ACharacter
@@ -30,7 +31,7 @@ public:
 	bool TeleportHeld;
 
 protected:
-	// Called when the game starts or when spawned
+	// Called when the game starts or when spawned	`
 	virtual void BeginPlay() override;
 
 	//Player Camera
@@ -45,18 +46,27 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TArray<class USplineMeshComponent*> TeleportPathMeshPool;
-
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class USceneComponent* ManipulatableR;
 
 	//Player Controllers
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class AHandController* LeftController;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class AHandController* RightController;
+	class AHandController* RightController;	*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UMotionControllerComponent* LeftController;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UMotionControllerComponent* RightController;
+
+	//sound
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	USoundCue* FireSoundCue;
 
 	//spline
 	UPROPERTY(VisibleAnywhere)
 	class USplineComponent* TeleportPath;
-
 
 	//teleport
 	bool FindTeleportDestination(TArray<FVector> &OutPath, FVector &OutLocation);
@@ -67,7 +77,6 @@ protected:
 	void EndTeleport();
 	void FinishTeleport();
 	
-
 	//movement
 	void MoveForward(float Value);
 	void MoveRight(float Value);
@@ -75,6 +84,10 @@ protected:
 	//sprinting
 	void Sprint();
 	void StopSprinting();
+
+	//Fire
+	void Fire();
+
 
 
 public:
@@ -110,8 +123,10 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	class UMaterialInterface* TeleportArchMat;
 
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AHandController> HandControllerClass;
+	UPROPERTY(EditAnywhere)
+	float BulletRange = 9999;
+	//UPROPERTY(EditDefaultsOnly)
+	//TSubclassOf<AHandController> HandControllerClass;
 };
 
 
