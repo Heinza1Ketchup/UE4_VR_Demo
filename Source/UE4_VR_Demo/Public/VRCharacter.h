@@ -12,6 +12,7 @@ class UStaticMeshComponent;
 class UMaterialInterface;
 class USoundCue;
 
+
 UCLASS()
 class UE4_VR_DEMO_API AVRCharacter : public ACharacter
 {
@@ -47,9 +48,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TArray<class USplineMeshComponent*> TeleportPathMeshPool;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class USceneComponent* ManipulatableR;
-
 	//Player Controllers
 	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class AHandController* LeftController;

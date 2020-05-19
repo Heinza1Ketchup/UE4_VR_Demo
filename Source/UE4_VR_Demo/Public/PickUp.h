@@ -27,18 +27,20 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Pickup")
 	class UBoxComponent* InteractiveCollider;
 
+	//
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Pickup")
+	USceneComponent* PickupSnapLocator;
+
 public:	
 	// Sets default values for this actor's properties
 	APickUp();
+	virtual void Tick(float DeltaTime) override;
+
+	FORCEINLINE UBoxComponent* GetBase() { return Base; }
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Pickup Interface")
@@ -57,6 +59,26 @@ protected:
 
 	bool bSimulatePhysics;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Pickup")
+	bool bEnablePickup;
+
+	UPROPERTY(EditDefaultsOnly, Category="Pickup")
+	bool bUsePickupLocator;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Pickup")
 	class UMotionControllerComponent *CurrentMotionController;
+
+protected:
+
+	UPROPERTY(EditDefaultsOnly, Category="Pickup")
+	bool bSnapToInitialTransform;
+
+	bool bWaitToSnapToInitial;
+
+	UPROPERTY(EditDefaultsOnly, Category="Pickup")
+	float WaitTimeToSnapToInitial;
+
+	float CurrentTimeToSnapToInitial;
+
+	FTransform InitialBaseTransform;
 };

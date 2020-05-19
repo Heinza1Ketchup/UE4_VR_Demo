@@ -23,7 +23,18 @@ APickUp::APickUp()
 	InteractiveCollider = CreateDefaultSubobject<UBoxComponent>(TEXT("Interactive Collider"));
 	InteractiveCollider->SetupAttachment(Base);
 
+	PickupSnapLocator = CreateDefaultSubobject<USceneComponent>(TEXT("PickupSnapLocator"));
+	PickupSnapLocator->SetupAttachment(Base);
+
 	bUsing = false;
+	bEnablePickup = true;
+
+	bUsePickupLocator = false;
+
+	bSnapToInitialTransform = false;
+	WaitTimeToSnapToInitial = 5.0f;
+	CurrentTimeToSnapToInitial = 0.0f;
+	bWaitToSnapToInitial = false;
 
 }
 
@@ -33,6 +44,8 @@ void APickUp::BeginPlay()
 	Super::BeginPlay();
 	
 	bSimulatePhysics = Base->IsSimulatingPhysics();
+
+	InitialBaseTransform = Base->GetComponentTransform();
 }
 
 // Called every frame
@@ -40,25 +53,53 @@ void APickUp::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (bWaitToSnapToInitial)
+	{
+		CurrentTimeToSnapToInitial += DeltaTime;
+
+		if (CurrentTimeToSnapToInitial >= WaitTimeToSnapToInitial)
+		{
+			CurrentTimeToSnapToInitial = 0.0f;
+
+			bWaitToSnapToInitial = false;
+
+			Base->SetWorldTransform(InitialBaseTransform);
+
+			bEnablePickup = true;
+		}
+	}
 }
 
 void APickUp::Pickup_Implementation(UMotionControllerComponent* MotionController)
 {
-	if (!bUsing) {
+	if (!bUsing)
+	{
 		bUsing = true;
 
 		CurrentMotionController = MotionController;
 
 		Base->SetSimulatePhysics(false);
-		//Base->AttachToComponent(MotionController, FAttachmentTransformRules::KeepWorldTransform, NAME_None);
-		//UE_LOG(LogTemp, Log, (TEXT("Captains log star date")));
 
+		// Use the PickupLocator to set the location before attach
+		if (bUsePickupLocator)
+		{
+			FVector SnapLocation = PickupSnapLocator->GetComponentTransform().GetLocation() - Base->GetComponentTransform().GetLocation();
+			float SnapDistance = SnapLocation.Size();
 
+			FVector NewLocation = (MotionController->GetForwardVector() * SnapDistance) + MotionController->GetComponentTransform().GetLocation();
+
+			Base->SetWorldLocation(NewLocation);
+		}
+
+		Base->AttachToComponent(MotionController, FAttachmentTransformRules::KeepWorldTransform, NAME_None);
 	}
 }
 
 void APickUp::Drop_Implementation(UMotionControllerComponent* MotionController)
 {
+
+	if (!bEnablePickup) return;
+
 	if ((MotionController == nullptr) || (CurrentMotionController == MotionController))
 	{
 		bUsing = false;
@@ -66,8 +107,18 @@ void APickUp::Drop_Implementation(UMotionControllerComponent* MotionController)
 		Base->SetSimulatePhysics(bSimulatePhysics);
 
 		CurrentMotionController = nullptr;
-		
+
 		Base->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 
+
+		// Check if we should snap the pickup to its initial transform after drop
+		if (bSnapToInitialTransform)
+		{
+			bWaitToSnapToInitial = true;
+			CurrentTimeToSnapToInitial = 0.0f;
+
+			bEnablePickup = false;
+		}
 	}
+
 }

@@ -9,6 +9,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/SplineMeshComponent.h"
+//#include "Components/SphereComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/World.h"
@@ -46,9 +47,6 @@ AVRCharacter::AVRCharacter()
 	RightController->SetupAttachment(VROriginComp);
 	RightController->SetTrackingSource(EControllerHand::Right);
 	
-	ManipulatableR = CreateDefaultSubobject<USceneComponent>(TEXT("ManipSceneComp"));
-	ManipulatableR->SetupAttachment(RightController);
-
 	//TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
 	//TeleportPath->SetupAttachment(VROriginComp);
 
@@ -127,7 +125,6 @@ void AVRCharacter::Tick(float DeltaTime)
 	AddActorWorldOffset(NewCameraOffset);
 	VROriginComp->AddWorldOffset(-(NewCameraOffset));
 	
-
 	//
 	if (TeleportHeld) {
 		UpdateDestinationMarker();
@@ -138,10 +135,6 @@ void AVRCharacter::Tick(float DeltaTime)
 		//TArray<FVector> EmptyPath;
 		//DrawTeleportPath(EmptyPath);
 	}
-	
-	
-	
-	
 }
 
 //Teleportation destination 
@@ -239,7 +232,6 @@ void AVRCharacter::UpdateSplineTeleport(const TArray<FVector> &Path)
 		FSplinePoint Point(i, LocalPosition, ESplinePointType::Curve);
 		TeleportPath->AddPoint(Point, false);
 		
-
 	}
 	TeleportPath->UpdateSpline();
 }
@@ -298,9 +290,7 @@ void AVRCharacter::Fire()
 		DrawDebugLine(GetWorld(), Start, End, FColor::White, false, 1.0f, 0, 1.0f);
 
 		if (Hit->IsRootComponentMovable()) {
-			//Hit->AddActorWorldOffset(Hit->GetActorForwardVector() + Look * 100.f);
-			
-			
+					
 		}
 		UGameplayStatics::PlaySoundAtLocation(this, FireSoundCue, GetActorLocation());
 	}
