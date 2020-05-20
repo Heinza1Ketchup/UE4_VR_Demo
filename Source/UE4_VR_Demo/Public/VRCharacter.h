@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "HandController.h"
 #include "VRCharacter.generated.h"
 
 class UCameraComponent;
@@ -37,26 +38,26 @@ protected:
 
 	//Player Camera
 	UPROPERTY(Visibleanywhere, BlueprintReadOnly, Category = "Components")
-	class UCameraComponent* Camera;
+	UCameraComponent* Camera;
 	/* Component to specify origin for the HMD */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* VROriginComp;
 	/* Component to specify destination marker for Teleportation*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class UStaticMeshComponent* DestinationMarker;
+	UStaticMeshComponent* DestinationMarker;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TArray<class USplineMeshComponent*> TeleportPathMeshPool;
 	
 	//Player Controllers
-	/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class AHandController* LeftController;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class AHandController* RightController;	*/
+	AHandController* LeftController;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	AHandController* RightController;	
+		/*UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UMotionControllerComponent* LeftController;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class UMotionControllerComponent* RightController;
+	class UMotionControllerComponent* RightController;*/
 
 	//sound
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
@@ -78,6 +79,12 @@ protected:
 	//movement
 	void MoveForward(float Value);
 	void MoveRight(float Value);
+
+	void GripLeft() {	LeftController->Grip();	}
+	void ReleaseLeft() {	LeftController->Release();	}
+	void GripRight() {	RightController->Grip();	}
+	void ReleaseRight()	{	RightController->Release();	}
+
 
 	//sprinting
 	void Sprint();
@@ -123,8 +130,9 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	float BulletRange = 9999;
-	//UPROPERTY(EditDefaultsOnly)
-	//TSubclassOf<AHandController> HandControllerClass;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AHandController> HandControllerClass;
 };
 
 

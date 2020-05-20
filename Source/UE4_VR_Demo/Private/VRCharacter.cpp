@@ -40,13 +40,13 @@ AVRCharacter::AVRCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	Camera->SetupAttachment(VROriginComp);
 
-	LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftController"));
+	/*LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftController"));
 	LeftController->SetupAttachment(VROriginComp);
 	LeftController->SetTrackingSource(EControllerHand::Left);
 	RightController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("RightController"));
 	RightController->SetupAttachment(VROriginComp);
 	RightController->SetTrackingSource(EControllerHand::Right);
-	
+	*/
 	//TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
 	//TeleportPath->SetupAttachment(VROriginComp);
 
@@ -59,7 +59,7 @@ void AVRCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	
-	/*RightController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
+	RightController = GetWorld()->SpawnActor<AHandController>(HandControllerClass);
 	if (RightController != nullptr) {
 		RightController->AttachToComponent(VROriginComp, FAttachmentTransformRules::KeepRelativeTransform);
 		RightController->SetOwner(this);
@@ -70,14 +70,15 @@ void AVRCharacter::BeginPlay()
 		LeftController->AttachToComponent(VROriginComp, FAttachmentTransformRules::KeepRelativeTransform);
 		LeftController->SetOwner(this);
 		LeftController->SetHand(EControllerHand::Left);
-	}*/
+		LeftController->SetActorRelativeScale3D(FVector(1, -1, 1));
+	}
 	
+	LeftController->PairController(RightController);
 
 	//Teleportation ring toggle
 	TeleportHeld = false;
 
 	//DestinationMarker->SetVisibility(false);
-
 }
 
 // Called to bind functionality to input
@@ -93,6 +94,10 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AVRCharacter::BeginTeleport);
 	PlayerInputComponent->BindAction("Teleport", IE_Released, this, &AVRCharacter::EndTeleport);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AVRCharacter::Fire);
+	PlayerInputComponent->BindAction("GrabLeft", IE_Pressed, this, &AVRCharacter::GripLeft);
+	PlayerInputComponent->BindAction("GrabLeft", IE_Released, this, &AVRCharacter::ReleaseLeft);
+	PlayerInputComponent->BindAction("GrabRight", IE_Pressed, this, &AVRCharacter::GripRight);
+	PlayerInputComponent->BindAction("GrabRight", IE_Released, this, &AVRCharacter::ReleaseRight);
 }
 
 void AVRCharacter::MoveForward(float Value)
@@ -163,10 +168,11 @@ void AVRCharacter::UpdateDestinationMarker()
 bool AVRCharacter::FindTeleportDestination(TArray<FVector> &OutPath, FVector &OutLocation)
 {
 
-	//FVector Start = RightController->GetActorLocation();
-	//FVector Look = RightController->GetActorForwardVector();
-	FVector Start = RightController->GetComponentLocation();
-	FVector Look = RightController->GetForwardVector();
+	FVector Start = RightController->GetActorLocation();
+	FVector Look = RightController->GetActorForwardVector();
+	//FVector Start = RightController->GetComponentLocation();
+	//FVector Look = RightController->GetForwardVector();
+	
 	//Look = Look.RotateAngleAxis(30, RightController->GetRightVector());
 	//FVector End = Start + Look * MaxTeleportDistance;
 
@@ -270,6 +276,7 @@ void AVRCharacter::FinishTeleport()
 //
 void AVRCharacter::Fire()
 {
+/*
 	FHitResult HitResult;
 	FVector Start = RightController->GetComponentLocation();
 	FVector Look = RightController->GetForwardVector();
@@ -294,4 +301,5 @@ void AVRCharacter::Fire()
 		}
 		UGameplayStatics::PlaySoundAtLocation(this, FireSoundCue, GetActorLocation());
 	}
+	*/
 }
