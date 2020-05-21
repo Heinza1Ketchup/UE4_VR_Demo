@@ -50,7 +50,9 @@ AVRCharacter::AVRCharacter()
 	//TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
 	//TeleportPath->SetupAttachment(VROriginComp);
 
+	//
 	SprintSpeedMultiplier = 1.55f;
+
 }
 
 // Called when the game starts or when spawned

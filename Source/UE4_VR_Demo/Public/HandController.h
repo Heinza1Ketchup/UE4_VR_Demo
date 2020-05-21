@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "MotionControllerComponent.h"
-
 #include "HandController.generated.h"
 
 
 class UHapticFeedbackEffect_Base;
+class UObjectInteractable;
 
 UCLASS()
 class UE4_VR_DEMO_API AHandController : public AActor
@@ -29,12 +29,26 @@ public:
 	void Grip();
 	void Release();
 
+	//inspect
+	UPROPERTY(EditAnywhere)
+	class USceneComponent* HoldingComponent;
+
+	UPROPERTY(EditAnywhere)
+	class AObjectInteractable* CurrentItem;
+
+	bool bHoldingItem;
+	bool bInspecting;
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	bool ActivateHFB;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool bObjectInHand = false;
 
 public:	
 	// Called every frame
@@ -58,6 +72,10 @@ private:
 	void ActorEndOverlap(AActor* OverlappedActor, AActor* OtherActor);
 
 	//state
+	
+	bool bCanPickup = false;
+	bool bCanFly = false;
+	bool bIsFlying = false;
 	bool bCanClimb = false;
 	bool bIsClimbing = false;
 	FVector ClimbingStartLocation;
@@ -66,4 +84,6 @@ private:
 
 	//helpers
 	bool CanClimb() const;
+	bool CanFly() const;
+	bool CanPickup();
 };
