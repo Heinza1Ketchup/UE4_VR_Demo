@@ -25,7 +25,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* MyMesh;
 
 public:	
@@ -37,6 +37,9 @@ public:
 
 	UFUNCTION()
 	void Drop();
+
+	UFUNCTION()
+	void Interact();
 
 	bool bHolding;
 	bool bGravity;

@@ -1,0 +1,18 @@
+{
+	"source": "UE",
+	"applications": [
+		{
+			"app_key": "application.generated.ue.ue4_vr_demo-13144385.ue4editor.exe",
+			"launch_type": "url",
+			"url": "steam://launch/",
+			"action_manifest_path": "E:/UE4_VR_Demo/Config/SteamVRBindings/steamvr_manifest.json",
+			"strings":
+			{
+				"en_us":
+				{
+					"name": "UE4_VR_Demo-13144385 [UE Editor]"
+				}
+			}
+		}
+	]
+}

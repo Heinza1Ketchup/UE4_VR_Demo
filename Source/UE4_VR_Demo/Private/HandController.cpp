@@ -9,6 +9,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/BoxComponent.h"
 #include "ObjectInteractable.h"
+#include "Weapon.h"
+
 
 // Sets default values
 AHandController::AHandController()
@@ -18,12 +20,10 @@ AHandController::AHandController()
 
 	MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("MotionController"));
 	SetRootComponent(MotionController);
-	
-
-	HoldingComponent = CreateDefaultSubobject<USceneComponent>(TEXT("HoldingComponent"));
-	HoldingComponent->SetupAttachment(MotionController);
 
 	CurrentItem = nullptr;
+	CurrentWeapon = nullptr;
+	
 	bInspecting = false;
 }
 
@@ -43,6 +43,7 @@ void AHandController::BeginPlay()
 	bIsFlying = false;
 	bCanPickup = false;
 	bObjectInHand = false;
+	bWeaponinHand = false;
 }
 
 // Called every frame
@@ -59,6 +60,11 @@ void AHandController::Tick(float DeltaTime)
 	}
 }
 
+void AHandController::PairController(AHandController* Controller)
+{
+	OtherController = Controller;
+	OtherController->OtherController = this;
+}
 void AHandController::ActorBeginOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
 	
@@ -83,12 +89,15 @@ void AHandController::ActorBeginOverlap(AActor* OverlappedActor, AActor* OtherAc
 
 	bool bNewCanPickup = CanPickup();
 	bCanPickup = bNewCanPickup;
+
 }
+
 void AHandController::ActorEndOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
 	bCanClimb = CanClimb();
 	bCanFly  = CanFly();
 }
+
 bool AHandController::CanClimb() const
 {
 	TArray<AActor*> OverlappingActors;
@@ -103,6 +112,7 @@ bool AHandController::CanClimb() const
 
 	return false;
 }
+
 bool AHandController::CanFly() const
 {
 	TArray<AActor*> OverlappingActors;
@@ -118,6 +128,7 @@ bool AHandController::CanFly() const
 
 	return false;
 }
+
 bool AHandController::CanPickup() 
 {
 	TArray<AActor*> OverlappingActors;
@@ -129,28 +140,66 @@ bool AHandController::CanPickup()
 		if (OverlappingActor->ActorHasTag(TEXT("Pickupable"))) {
 			CurrentItem = Cast<AObjectInteractable>(OverlappingActor);
 			return true;
-		}else{ CurrentItem = nullptr; }
+		}
+		else if (OverlappingActor->ActorHasTag(TEXT("Katana"))) {
+			CurrentItem = Cast<AObjectInteractable>(OverlappingActor);
+			return true;
+		}
+		else if (OverlappingActor->ActorHasTag(TEXT("Weapon"))) {
+			CurrentWeapon = Cast<AWeapon>(OverlappingActor);
+			return true;
+		}
+		else{ 
+			CurrentItem = nullptr; 
+		}
 	}
 
 	return false;
 }
 
+void AHandController::Interact()
+{
+
+}
 
 void AHandController::Grip()
 {
 	//
 	if (bCanPickup) {
-		UE_LOG(LogTemp, Warning, (TEXT("boing")));
 		TArray<AActor*> OverlappingActors;
 		GetOverlappingActors(OverlappingActors);
 
 		for (AActor* OverlappingActor : OverlappingActors)
 		{
-			if (OverlappingActor->ActorHasTag(TEXT("Pickupable"))) {
+			if (OverlappingActor->ActorHasTag(TEXT("Pickupable")) && !bObjectInHand && !bWeaponinHand) {
 				//OverlappingActor->AttachToComponent(MotionController, FAttachmentTransformRules::KeepWorldTransform, NAME_None);
 				CurrentItem->PickUp();
 				CurrentItem->AttachToComponent(MotionController, FAttachmentTransformRules::KeepWorldTransform, NAME_None);
 				bObjectInHand = true;
+			}
+			if (OverlappingActor->ActorHasTag(TEXT("Katana")) && !bObjectInHand && !bWeaponinHand) {
+				CurrentItem->PickUp();
+				FAttachmentTransformRules FattachRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
+				CurrentItem->AttachToComponent(MotionController, FattachRules, NAME_None);
+				FHitResult Fhit;
+				CurrentItem->AddActorLocalRotation(FRotator(215.f, 180.f, 0.f), false);
+				if (MotionController->Hand_DEPRECATED == EControllerHand::Right) {
+					CurrentItem->K2_AddActorLocalOffset(FVector(0.f, 6.f, 0.f), false, Fhit, false);
+				}
+				else if (MotionController->Hand_DEPRECATED == EControllerHand::Left)
+				{
+					CurrentItem->K2_AddActorLocalOffset(FVector(0.f, -6.f, 0.f), false, Fhit, false);
+				}
+				
+				bObjectInHand = true;
+			}
+			if (OverlappingActor->ActorHasTag(TEXT("Weapon")) && !bObjectInHand && !bWeaponinHand) {
+				CurrentWeapon->PickUp();
+				FAttachmentTransformRules FattachRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
+				CurrentWeapon->AttachToComponent(MotionController, FattachRules, NAME_None);
+				FHitResult Fhit;
+
+				bWeaponinHand = true;
 			}
 		}
 	}
@@ -192,13 +241,10 @@ void AHandController::Release()
 	if (bIsClimbing) {
 		bIsClimbing = false;
 
-		ACharacter* Character = Cast<ACharacter>(GetAttachParentActor());
-		if (Character != nullptr) {
-			Character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
-		}
+		GetWorldTimerManager().SetTimer(TimerHandle_ClimbReleaseTime, this, &AHandController::SetStateFalling, 0.1, false);
 	}
 
-	if (bObjectInHand) {
+	if (bObjectInHand || bWeaponinHand) {
 		TArray<AActor*> OverlappingActors;
 		GetOverlappingActors(OverlappingActors);
 
@@ -209,13 +255,34 @@ void AHandController::Release()
 				CurrentItem->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 				bObjectInHand = false;
 			}
+			if (OverlappingActor->ActorHasTag(TEXT("Katana"))) {
+				CurrentItem->Drop();
+				CurrentItem->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+				bObjectInHand = false;
+			}
+			if (OverlappingActor->ActorHasTag(TEXT("Weapon"))) {
+				CurrentWeapon->Drop();
+				CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+				bWeaponinHand = false;
+			}
 		}
 	}
 
 	
 }
-void AHandController::PairController(AHandController* Controller)
+
+void AHandController::SetStateFalling()
 {
-	OtherController = Controller;
-	OtherController->OtherController = this;
+	ACharacter* Character = Cast<ACharacter>(GetAttachParentActor());
+	if (Character != nullptr) {
+		Character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
+	}
+}
+
+void AHandController::WeaponFire()
+{
+	if(!bWeaponinHand){	return;	}
+
+	UE_LOG(LogTemp, Warning, (TEXT("abc")));
+	CurrentWeapon->WeaponFire();
 }

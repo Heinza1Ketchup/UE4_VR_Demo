@@ -40,6 +40,12 @@ AVRCharacter::AVRCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	Camera->SetupAttachment(VROriginComp);
 
+	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
+	TeleportPath->SetupAttachment(VROriginComp);
+
+	//
+	SprintSpeedMultiplier = 1.55f;
+
 	/*LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("LeftController"));
 	LeftController->SetupAttachment(VROriginComp);
 	LeftController->SetTrackingSource(EControllerHand::Left);
@@ -47,12 +53,6 @@ AVRCharacter::AVRCharacter()
 	RightController->SetupAttachment(VROriginComp);
 	RightController->SetTrackingSource(EControllerHand::Right);
 	*/
-	//TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("TeleportPath"));
-	//TeleportPath->SetupAttachment(VROriginComp);
-
-	//
-	SprintSpeedMultiplier = 1.55f;
-
 }
 
 // Called when the game starts or when spawned
@@ -95,7 +95,8 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AVRCharacter::Jump);
 	PlayerInputComponent->BindAction("Teleport", IE_Pressed, this, &AVRCharacter::BeginTeleport);
 	PlayerInputComponent->BindAction("Teleport", IE_Released, this, &AVRCharacter::EndTeleport);
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AVRCharacter::Fire);
+	PlayerInputComponent->BindAction("InteractLeft", IE_Pressed, this, &AVRCharacter::InteractLeft);
+	PlayerInputComponent->BindAction("InteractRight", IE_Pressed, this, &AVRCharacter::InteractRight);
 	PlayerInputComponent->BindAction("GrabLeft", IE_Pressed, this, &AVRCharacter::GripLeft);
 	PlayerInputComponent->BindAction("GrabLeft", IE_Released, this, &AVRCharacter::ReleaseLeft);
 	PlayerInputComponent->BindAction("GrabRight", IE_Pressed, this, &AVRCharacter::GripRight);
@@ -139,8 +140,8 @@ void AVRCharacter::Tick(float DeltaTime)
 	else {
 		DestinationMarker->SetVisibility(false);
 
-		//TArray<FVector> EmptyPath;
-		//DrawTeleportPath(EmptyPath);
+		TArray<FVector> EmptyPath;
+		DrawTeleportPath(EmptyPath);
 	}
 }
 
@@ -158,14 +159,14 @@ void AVRCharacter::UpdateDestinationMarker()
 		DestinationMarker->SetWorldLocation(Location);
 		
 		//UpdateSplineTeleport(Path);
-		//DrawTeleportPath(Path);
+		DrawTeleportPath(Path);
 	}
-	/*else {
+	else {
 		DestinationMarker->SetVisibility(false);
 
 		TArray<FVector> EmptyPath;
 		DrawTeleportPath(EmptyPath);
-	}*/
+	}
 }
 bool AVRCharacter::FindTeleportDestination(TArray<FVector> &OutPath, FVector &OutLocation)
 {
@@ -234,6 +235,7 @@ void AVRCharacter::DrawTeleportPath(const TArray<FVector> &Path)
 void AVRCharacter::UpdateSplineTeleport(const TArray<FVector> &Path)
 {
 	TeleportPath->ClearSplinePoints(false);
+
 	for (int32 i = 0; i < Path.Num(); i++)
 	{
 		FVector LocalPosition = TeleportPath->GetComponentTransform().InverseTransformPosition(Path[i]);
@@ -276,32 +278,4 @@ void AVRCharacter::FinishTeleport()
 	}
 }
 //
-void AVRCharacter::Fire()
-{
-/*
-	FHitResult HitResult;
-	FVector Start = RightController->GetComponentLocation();
-	FVector Look = RightController->GetForwardVector();
-	FVector End = Start + Look * BulletRange;
 
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-	QueryParams.bTraceComplex = true;
-	QueryParams.bReturnPhysicalMaterial = true;
-
-	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, COLLISION_WEAPON, QueryParams);
-
-	if (bHit) {
-		AActor* Hit = HitResult.GetActor();
-		EPhysicalSurface SufraceType = UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
-
-
-		DrawDebugLine(GetWorld(), Start, End, FColor::White, false, 1.0f, 0, 1.0f);
-
-		if (Hit->IsRootComponentMovable()) {
-					
-		}
-		UGameplayStatics::PlaySoundAtLocation(this, FireSoundCue, GetActorLocation());
-	}
-	*/
-}

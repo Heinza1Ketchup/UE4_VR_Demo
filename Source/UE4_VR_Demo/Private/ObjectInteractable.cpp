@@ -54,3 +54,7 @@ void AObjectInteractable::Drop()
 	MyMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 }
 
+void AObjectInteractable::Interact()
+{
+
+}

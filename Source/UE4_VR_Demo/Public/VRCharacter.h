@@ -80,9 +80,9 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 
-	void GripLeft() {	LeftController->Grip();	}
-	void ReleaseLeft() {	LeftController->Release();	}
-	void GripRight() {	RightController->Grip();	}
+	void GripLeft()		{	LeftController->Grip();	}
+	void ReleaseLeft()	{	LeftController->Release();	}
+	void GripRight()	{	RightController->Grip();	}
 	void ReleaseRight()	{	RightController->Release();	}
 
 
@@ -91,7 +91,8 @@ protected:
 	void StopSprinting();
 
 	//Fire
-	void Fire();
+	void InteractLeft()		{ LeftController->WeaponFire(); }
+	void InteractRight()	{RightController->WeaponFire(); }
 
 
 public:

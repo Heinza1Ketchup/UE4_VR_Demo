@@ -21,13 +21,20 @@ public:
 	AHandController();
 
 	void SetHand(EControllerHand Hand) { 
-		//MotionController->Hand_DEPRECATED = Hand;
 		MotionController->SetTrackingSource(Hand);
+		MotionController->Hand_DEPRECATED = Hand;
 	}
 	void PairController(AHandController* Controller);
 
 	void Grip();
 	void Release();
+
+	void Interact();
+
+	void WeaponFire();
+
+	void SetStateFalling();
+	FTimerHandle TimerHandle_ClimbReleaseTime;
 
 	//inspect
 	UPROPERTY(EditAnywhere)
@@ -36,8 +43,13 @@ public:
 	UPROPERTY(EditAnywhere)
 	class AObjectInteractable* CurrentItem;
 
+	UPROPERTY(EditAnywhere)
+	class AWeapon* CurrentWeapon;
+
 	bool bHoldingItem;
 	bool bInspecting;
+
+	bool bWeaponinHand;
 
 
 protected:
