@@ -34,6 +34,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	USoundCue* WReloadSoundCue;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	USoundCue*WEmptyPingSoundCue;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	USoundCue* RifleShotEmptySoundCue;
+
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class ABallistic> ProjectileClass;
 
@@ -69,6 +75,10 @@ protected:
 	float RateOfFire;
 	//derive from rate of fire
 	float TimeBetweenShots;
+
+	//Spread in Degrees
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (ClampMin = 0.0f))
+	float BulletSpread;
 
 	float RoundsInClip;
 

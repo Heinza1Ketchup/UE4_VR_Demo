@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "UE4_VR_Demo.h"
 #include "GameActors/Ballistic.h"
+#include "UE4_VR_Demo.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
 

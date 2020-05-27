@@ -84,6 +84,7 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AVRCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AVRCharacter::MoveRight);
+
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AVRCharacter::Sprint);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AVRCharacter::StopSprinting);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AVRCharacter::Jump);
@@ -283,3 +284,4 @@ void AVRCharacter::OnHealthChanged(USHealthComponent* OwningHealthComp, float He
 		SetLifeSpan(10.0f);
 	}
 }
+

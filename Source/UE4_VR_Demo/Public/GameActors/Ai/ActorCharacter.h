@@ -26,12 +26,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UCameraComponent* CameraComp;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USHealthComponent* HealthComp;
 
 	FTimerHandle TimerHandle_Destroytimer;
 
-	UPROPERTY(BlueprintReadOnly, Category = "PawnCharacter")
+	UPROPERTY(BlueprintReadOnly, Category="PawnCharacter")
 	bool bDied;
 
 	void DestroyPawn();
@@ -39,10 +39,14 @@ protected:
 	UFUNCTION()
 	void HandleTakeDamage(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
+	UFUNCTION()
+	void OnHealthChanged(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
 	//dynamic material to pulse on damage
 	UMaterialInstanceDynamic* MatInst;
 
 	bool bCanMove;
+	bool bCanFire;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
 	TSubclassOf<ASWeapon> StarterWeaponClass;
@@ -56,8 +60,16 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintCallable, Category = "Player")
+	void StartFire();
+
+	UFUNCTION(BlueprintCallable, Category = "Player")
+	void StopFire();
 
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
 	virtual FVector GetPawnViewLocation() const override;
 };
+
+
+

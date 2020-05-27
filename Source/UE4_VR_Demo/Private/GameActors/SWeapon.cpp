@@ -37,6 +37,7 @@ ASWeapon::ASWeapon()
 	BaseDamage = 20.f;
 	RateOfFire = 720;
 	RoundsInClip = 30;
+	BulletSpread = 1.75f;
 
 	//
 	UGameplayStatics::SpawnSoundAttached(RifleShotSoundCue, RootComponent);
@@ -64,6 +65,8 @@ void ASWeapon::Fire()
 			MyOwner->GetActorEyesViewPoint(EyeLocation, EyeRotation);
 
 			FVector ShotDirection = EyeRotation.Vector();
+			float HalfRad = FMath::DegreesToRadians(BulletSpread);
+			ShotDirection = FMath::VRandCone(ShotDirection, HalfRad, HalfRad);
 
 			FVector TraceEnd = EyeLocation + (ShotDirection * 10000);
 
@@ -92,7 +95,7 @@ void ASWeapon::Fire()
 
 				}
 
-				UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
+				UGameplayStatics::ApplyPointDamage(HitActor, ActualDamage, ShotDirection, Hit, MyOwner->GetInstigatorController(), MyOwner, DamageType);
 
 
 				UParticleSystem* SelectedEffect = nullptr;

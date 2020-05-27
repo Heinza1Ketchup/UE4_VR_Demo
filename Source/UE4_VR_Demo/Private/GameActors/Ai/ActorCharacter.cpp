@@ -27,12 +27,15 @@ AActorCharacter::AActorCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	HealthComp = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComp"));
-	
+	HealthComp->OnHealthChanged.AddDynamic(this, &AActorCharacter::OnHealthChanged);
+
+
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(RootComponent);
 
 	bDied = false;
 	bCanMove = true;
+	bCanFire = true;
 	WeaponAttachSocketName = "Weapon_Socket";
 }
 
@@ -41,8 +44,9 @@ void AActorCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	
 	// Spawn a default weapon
-	/*FActorSpawnParameters SpawnParams;
+	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(StarterWeaponClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
@@ -50,9 +54,9 @@ void AActorCharacter::BeginPlay()
 	{
 		CurrentWeapon->SetOwner(this);
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
-	}*/
+	}
 
-	HealthComp->OnHealthChanged.AddDynamic(this, &AActorCharacter::HandleTakeDamage);
+	
 }
 
 // Called every frame
@@ -61,24 +65,38 @@ void AActorCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
+void AActorCharacter::OnHealthChanged(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+{
+	UE_LOG(LogTemp, Log, TEXT("Health %s of %s"), *FString::SanitizeFloat(Health), *GetName());
+	if (Health <= 0.0f && !bDied) {
+		bDied = true;
 
+		//GetMovementComponent()->StopMovementImmediately();
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		DetachFromControllerPendingDestroy();
+		SetLifeSpan(10.0f);
+	}
+}
 void AActorCharacter::HandleTakeDamage(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
-
+	/*
 	if (MatInst == nullptr) {
-		//MatInst = GetMesh()->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComp->GetMaterial(0));
+		MatInst = GetMesh()->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComp->GetMaterial(0));
 	}
-
 	if (MatInst) {
 		MatInst->SetScalarParameterValue("LastTimeDamageTaken", GetWorld()->TimeSeconds);
-	}
+	}*/
 
 
-	UE_LOG(LogTemp, Log, TEXT("Health %s of %s"), *FString::SanitizeFloat(Health), *GetName());
+	//UE_LOG(LogTemp, Log, TEXT("Health %s of %s"), *FString::SanitizeFloat(Health), *GetName());
 
 	if (Health <= 0.0f) {
 		//
 		bDied = true;
+		
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		DetachFromControllerPendingDestroy();
 		
 		GetWorldTimerManager().SetTimer(TimerHandle_Destroytimer, this, &AActorCharacter::DestroyPawn, 4, false);
 	}
@@ -87,6 +105,7 @@ void AActorCharacter::HandleTakeDamage(USHealthComponent* OwningHealthComp, floa
 void AActorCharacter::DestroyPawn()
 {
 	Destroy();
+	CurrentWeapon->Destroy();
 }
 void AActorCharacter::NotifyActorBeginOverlap(AActor* OtherActor)
 {
@@ -100,4 +119,18 @@ FVector AActorCharacter::GetPawnViewLocation() const
 	}
 
 	return Super::GetPawnViewLocation();;
+}
+
+void AActorCharacter::StartFire()
+{
+	if (CurrentWeapon && bCanFire) {
+		CurrentWeapon->StartFire();
+	}
+}
+
+void AActorCharacter::StopFire()
+{
+	if (CurrentWeapon) {
+		CurrentWeapon->StopFire();
+	}
 }

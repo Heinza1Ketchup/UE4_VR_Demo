@@ -2,6 +2,9 @@
 
 
 #include "Character/SHealthComponent.h"
+#include "Net/UnrealNetwork.h"
+#include "SGameMode.h"
+#include "Components/ActorComponent.h"
 
 // Sets default values for this component's properties
 USHealthComponent::USHealthComponent()
@@ -11,6 +14,7 @@ USHealthComponent::USHealthComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	DefaultHealth = 100;
+	TeamNum = 255;
 }
 
 
@@ -18,6 +22,10 @@ USHealthComponent::USHealthComponent()
 void USHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	bIsDead = false;
+
+	
 
 	AActor* MyOwner = GetOwner();
 	if (MyOwner)
@@ -32,15 +40,32 @@ void USHealthComponent::BeginPlay()
 
 void USHealthComponent::HandleTakeAnyDamage(AActor * DamagedActor, float Damage, const UDamageType * DamageType, AController * InstigatedBy, AActor * DamageCauser)
 {
-	if (Damage <= 0.0f) {
+
+	
+	if (Damage <= 0.0f || bIsDead) {
 		return;
 	}
+
+	//DamageCauser != DamagedActor &&
+	//if ( IsFriendly(GetOwner(), DamageCauser)) {return;}
+
+
 	//update health clamp
 	Health = FMath::Clamp(Health - Damage, 0.0f, DefaultHealth);
 
-	UE_LOG(LogTemp, Log, TEXT("Health Changed: %s"), *FString::SanitizeFloat(Health))
+	//UE_LOG(LogTemp, Log, TEXT("Health Changed: %s"), *FString::SanitizeFloat(Health))
 
-		OnHealthChanged.Broadcast(this, Health, Damage, DamageType, InstigatedBy, DamageCauser);
+	bIsDead = (Health <= 0.0f);
+
+	OnHealthChanged.Broadcast(this, Health, Damage, DamageType, InstigatedBy, DamageCauser);
+
+	if (Health <= 0.0f) {
+		ASGameMode* GM = Cast<ASGameMode>(GetWorld()->GetAuthGameMode());
+		if (GM) {
+			GM->OnActorKilled.Broadcast(GetOwner(), DamageCauser, InstigatedBy);
+		}
+	}
+	
 }
 
 void USHealthComponent::Heal(float Value)
@@ -55,3 +80,23 @@ void USHealthComponent::Heal(float Value)
 		OnHealthChanged.Broadcast(this, Health, -Value, nullptr, nullptr, nullptr);
 }
 
+bool USHealthComponent::IsFriendly(AActor * ActorA, AActor * ActorB)
+{
+	if (ActorA == nullptr || ActorB == nullptr) {
+		return false;
+	}
+
+	USHealthComponent* HealthCompA = Cast<USHealthComponent>(ActorA->GetComponentByClass(USHealthComponent::StaticClass()));
+	USHealthComponent* HealthCompB = Cast<USHealthComponent>(ActorB->GetComponentByClass(USHealthComponent::StaticClass()));
+
+	if (HealthCompB == nullptr || HealthCompA == nullptr) {
+		return true;
+	}
+
+	return HealthCompA->TeamNum == HealthCompB->TeamNum;
+}
+
+float USHealthComponent::GetHealth() const 
+{
+	return Health;
+}

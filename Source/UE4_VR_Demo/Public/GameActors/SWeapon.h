@@ -70,6 +70,9 @@ protected:
 
 	float RoundsInClip;
 
+	//Spread in Degrees
+	UPROPERTY(EditDefaultsOnly, Category="Weapon", meta = (ClampMin=0.0f))
+	float BulletSpread;
 	//
 	UPROPERTY(EditDefaultsOnly, Category = "TracketBot")
 		class USoundCue* RifleShotSoundCue;

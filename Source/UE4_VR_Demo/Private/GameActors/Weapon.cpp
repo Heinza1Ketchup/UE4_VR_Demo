@@ -26,6 +26,8 @@ AWeapon::AWeapon()
 
 	UGameplayStatics::SpawnSoundAttached(WFireSoundCue, RootComponent);
 	UGameplayStatics::SpawnSoundAttached(WReloadSoundCue, RootComponent);
+	UGameplayStatics::SpawnSoundAttached(RifleShotEmptySoundCue, RootComponent);
+	UGameplayStatics::SpawnSoundAttached(WEmptyPingSoundCue, RootComponent);
 
 	MuzzleSocketName = "MuzzleSocket";
 	TracerTargetName = "Target";
@@ -54,6 +56,10 @@ void AWeapon::WeaponFire()
 	if (RoundsInClip > 0) {
 		FVector Start = FireStartingPoint->GetComponentLocation();
 		FVector Look = FireStartingPoint->GetForwardVector();
+		
+		float HalfRad = FMath::DegreesToRadians(BulletSpread);
+		Look = FMath::VRandCone(Look, HalfRad, HalfRad);
+
 		FVector End = Start + Look * BulletRange;
 
 		FCollisionQueryParams QueryParams;
@@ -65,10 +71,6 @@ void AWeapon::WeaponFire()
 
 		FHitResult HitResult;
 		bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, COLLISION_WEAPON, QueryParams);
-
-		UGameplayStatics::PlaySoundAtLocation(this, WFireSoundCue, GetActorLocation());
-
-		UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, FireStartingPoint);
 
 		//spawn physical projectile
 		/*UWorld* World = GetWorld();
@@ -85,7 +87,9 @@ void AWeapon::WeaponFire()
 				}
 
 			}*/
+		UGameplayStatics::PlaySoundAtLocation(this, WFireSoundCue, GetActorLocation());
 
+		UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, FireStartingPoint);
 		if (bHit) {
 			AActor* Hit = HitResult.GetActor();
 			EPhysicalSurface SufraceType = UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
@@ -106,6 +110,9 @@ void AWeapon::WeaponFire()
 				SelectedEffect = FleshImpactEffect;
 				break;
 			case SURFACE_FLESHLEATHAL:
+				SelectedEffect = FleshImpactEffect;
+				break;
+			case SURFACE_FLESHDEFAULT:
 				SelectedEffect = FleshImpactEffect;
 				break;
 			default:
@@ -131,6 +138,9 @@ void AWeapon::WeaponFire()
 		}
 
 		RoundsInClip--;
+		if (RoundsInClip == 0) {
+			UGameplayStatics::PlaySoundAtLocation(this, WEmptyPingSoundCue, GetActorLocation());
+		}
 	}
 
 	
@@ -145,7 +155,9 @@ void AWeapon::StartFire()
 
 	GetWorldTimerManager().SetTimer(TimerHandle_TimeBetweenShots, this, &AWeapon::WeaponFire, TimeBetweenShots, FirstDelay);
 	
-	
+	if (RoundsInClip == 0) {
+		UGameplayStatics::PlaySoundAtLocation(this, RifleShotEmptySoundCue, GetActorLocation());
+	}
 }
 void AWeapon::StopFire()
 {
