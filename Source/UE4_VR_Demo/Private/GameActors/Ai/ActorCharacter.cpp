@@ -37,6 +37,11 @@ AActorCharacter::AActorCharacter()
 	bCanMove = true;
 	bCanFire = true;
 	WeaponAttachSocketName = "Weapon_Socket";
+
+	UGameplayStatics::SpawnSoundAttached(DeathSound1, RootComponent);
+	UGameplayStatics::SpawnSoundAttached(DeathSound2, RootComponent);
+	UGameplayStatics::SpawnSoundAttached(DeathSound3, RootComponent);
+
 }
 
 // Called when the game starts or when spawned
@@ -74,8 +79,24 @@ void AActorCharacter::OnHealthChanged(USHealthComponent* OwningHealthComp, float
 		//GetMovementComponent()->StopMovementImmediately();
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+
+		int8 RandomNum = FMath::RandRange(0, 2);
+		switch (RandomNum) {
+		case 0:
+			UGameplayStatics::PlaySoundAtLocation(this, DeathSound1, GetActorLocation());
+			break;
+		case 1:
+			UGameplayStatics::PlaySoundAtLocation(this, DeathSound2, GetActorLocation());
+			break;
+		case 2:
+			UGameplayStatics::PlaySoundAtLocation(this, DeathSound3, GetActorLocation());
+			break;
+		}
+
 		DetachFromControllerPendingDestroy();
-		SetLifeSpan(10.0f);
+		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
+		CurrentWeapon->Destroy();
+		SetLifeSpan(5.0f);
 	}
 }
 void AActorCharacter::HandleTakeDamage(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
@@ -97,7 +118,7 @@ void AActorCharacter::HandleTakeDamage(USHealthComponent* OwningHealthComp, floa
 		
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		DetachFromControllerPendingDestroy();
-		
+
 		GetWorldTimerManager().SetTimer(TimerHandle_Destroytimer, this, &AActorCharacter::DestroyPawn, 4, false);
 	}
 

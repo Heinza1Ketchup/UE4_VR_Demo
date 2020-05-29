@@ -99,6 +99,9 @@ void AHandController::ActorEndOverlap(AActor* OverlappedActor, AActor* OtherActo
 {
 	bCanClimb = CanClimb();
 	bCanFly  = CanFly();
+	bCanPickup = CanPickup();
+	bCanReload = CanReload();
+
 }
 
 bool AHandController::CanClimb() const

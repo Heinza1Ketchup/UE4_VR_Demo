@@ -25,7 +25,7 @@ protected:
 	FTimerHandle TimerHandle_NextWavetoStart;
 
 	int32 NumofBotsSpawn;
-	int32 WaveCount;
+	
 
 	UPROPERTY(EditDefaultsOnly, Category="GameMode")
 	float TimeBetweenWaves;
@@ -64,4 +64,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="GameMode")
 	FOnActorKilled OnActorKilled;
+
+	UPROPERTY(BlueprintReadOnly, Category="GameMode")
+	float WaveCount;
 };

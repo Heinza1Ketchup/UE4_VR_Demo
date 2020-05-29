@@ -9,6 +9,7 @@
 class UCameraComponent;
 class USHealthComponent;
 class ASWeapon;
+class USoundCue;
 
 UCLASS()
 class UE4_VR_DEMO_API AActorCharacter : public ACharacter
@@ -55,6 +56,15 @@ protected:
 	FName WeaponAttachSocketName;
 
 	ASWeapon* CurrentWeapon;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	USoundCue* DeathSound1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	USoundCue* DeathSound2;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	USoundCue* DeathSound3;
 
 public:
 	// Called every frame
