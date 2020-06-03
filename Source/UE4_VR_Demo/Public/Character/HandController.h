@@ -10,6 +10,7 @@
 
 class UHapticFeedbackEffect_Base;
 class UObjectInteractable;
+class USphereComponent;
 
 UCLASS()
 class UE4_VR_DEMO_API AHandController : public AActor
@@ -45,13 +46,19 @@ public:
 	class AObjectInteractable* CurrentItem;
 
 	UPROPERTY(EditAnywhere)
+	class AObjectInteractable* ForceItem;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	class USphereComponent* ForceSphere;
+
+	UPROPERTY(EditAnywhere)
 	class AWeapon* CurrentWeapon;
 
 	bool bHoldingItem;
 	bool bInspecting;
 
-	bool bWeaponinHand;
-
+	FComponentQueryParams DefaultQueryParams;
+	FCollisionResponseParams DefaultReponseParams;
 
 protected:
 	// Called when the game starts or when spawned
@@ -62,6 +69,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	bool bObjectInHand = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool bWeaponinHand = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool bSwordInHand = false;
 
 public:	
 	// Called every frame
@@ -100,5 +113,7 @@ private:
 	bool CanFly() const;
 	bool CanPickup();
 	bool CanReload();
+
+	float BulletRange = 9999.f;
 };
  

@@ -137,7 +137,7 @@ void AWeapon::WeaponFire()
 			LastFireTime = GetWorld()->TimeSeconds;
 		}
 
-		RoundsInClip--;
+		//RoundsInClip--;
 		if (RoundsInClip == 0) {
 			UGameplayStatics::PlaySoundAtLocation(this, WEmptyPingSoundCue, GetActorLocation());
 		}
@@ -167,6 +167,7 @@ void AWeapon::StopFire()
 
 void AWeapon::ReloadWeapon()
 {
+	StopFire();
 	UGameplayStatics::PlaySoundAtLocation(this, WReloadSoundCue, GetActorLocation());
 	RoundsInClip = 30;
 }

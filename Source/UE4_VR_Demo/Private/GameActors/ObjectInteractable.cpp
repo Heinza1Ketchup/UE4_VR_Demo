@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/SphereComponent.h"
+#include "Sound/SoundCue.h"
 
 // Sets default values
 AObjectInteractable::AObjectInteractable()
@@ -18,9 +19,12 @@ AObjectInteractable::AObjectInteractable()
 	MyMesh->SetSimulatePhysics(true);
 	MyMesh->SetupAttachment(RootComponent);
 
+	UGameplayStatics::SpawnSoundAttached(SwordOnSoundCue, RootComponent);
+	UGameplayStatics::SpawnSoundAttached(SwordOffSoundCue, RootComponent);
 
 	bHolding = false;
 	bGravity = true;
+	bSwordisOn = false;
 }
 
 // Called when the game starts or when spawned
@@ -56,5 +60,16 @@ void AObjectInteractable::Drop()
 
 void AObjectInteractable::Interact()
 {
-
+	if (bHoldingSword) {
+		if (!bSwordisOn) {
+			bSwordisOn = true;
+			UGameplayStatics::PlaySoundAtLocation(this, SwordOnSoundCue, GetActorLocation());
+			return;
+		}
+		if (bSwordisOn) {
+			bSwordisOn = false;
+			UGameplayStatics::PlaySoundAtLocation(this, SwordOffSoundCue, GetActorLocation());
+			return;
+		}
+	}
 }

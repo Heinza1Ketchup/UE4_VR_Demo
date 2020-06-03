@@ -9,6 +9,7 @@
 class UCameraComponent;
 class ACharacter;
 class USphereComponent;
+class USoundCue;
 
 UCLASS()
 class UE4_VR_DEMO_API AObjectInteractable : public AActor
@@ -33,6 +34,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USceneComponent* SceneComp;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	USoundCue* SwordOnSoundCue;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	USoundCue* SwordOffSoundCue;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -49,6 +56,11 @@ public:
 	bool bHolding;
 	bool bGravity;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool bSwordisOn;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool bHoldingSword;
 
 	FRotator ControlRotation;
 	ACharacter* MyCharacter;

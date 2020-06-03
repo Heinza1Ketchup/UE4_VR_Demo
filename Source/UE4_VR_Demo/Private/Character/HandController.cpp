@@ -8,9 +8,12 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameActors/ObjectInteractable.h"
 #include "GameActors/Weapon.h"
-
+#include "GameActors/SWeapon.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
 
 // Sets default values
 AHandController::AHandController()
@@ -21,9 +24,14 @@ AHandController::AHandController()
 	MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("MotionController"));
 	SetRootComponent(MotionController);
 
+	ForceSphere = CreateDefaultSubobject<USphereComponent>(TEXT("StaticMeshComponent"));
+	ForceSphere->SetupAttachment(MotionController);
+	ForceSphere->SetSphereRadius(5.0f);
+
 	CurrentItem = nullptr;
 	CurrentWeapon = nullptr;
-	
+	ForceItem = nullptr;
+
 	bInspecting = false;
 }
 
@@ -59,6 +67,34 @@ void AHandController::Tick(float DeltaTime)
 		FVector HandControllerDelta = GetActorLocation() - ClimbingStartLocation; 
 		GetAttachParentActor()->AddActorWorldOffset(-HandControllerDelta);
 	}
+
+
+	/*
+	//
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+	QueryParams.bTraceComplex = true;
+	QueryParams.bReturnPhysicalMaterial = true;
+
+	FVector Start = GetActorLocation();
+	FVector Look = GetActorForwardVector();
+	FVector End = Start + Look * BulletRange;
+
+	FHitResult HitResult;
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_GameTraceChannel1, QueryParams);
+	 
+	
+	if (HitResult.GetActor()->ActorHasTag(TEXT("Pickupable"))) {
+		ForceItem = Cast<AObjectInteractable>(HitResult.GetActor());
+		HitResult.GetActor()->SetActorLocation(MotionController->GetComponentLocation());
+		FHitResult bHit2;
+		ForceSphere->K2_SetWorldLocation(HitResult.GetActor()->GetActorLocation(),  false, bHit2, false);
+	}
+	else {
+		ForceItem = nullptr;
+	}*/
+
+
 }
 
 void AHandController::PairController(AHandController* Controller)
@@ -151,6 +187,10 @@ bool AHandController::CanPickup()
 			CurrentItem = Cast<AObjectInteractable>(OverlappingActor);
 			return true;
 		}
+		else if (OverlappingActor->ActorHasTag(TEXT("Saber"))) {
+			CurrentItem = Cast<AObjectInteractable>(OverlappingActor);
+			return true;
+		}
 		else if (OverlappingActor->ActorHasTag(TEXT("Weapon"))) {
 			CurrentWeapon = Cast<AWeapon>(OverlappingActor);
 			return true;
@@ -175,11 +215,6 @@ bool AHandController::CanReload()
 	}
 
 	return false;
-}
-
-void AHandController::Interact()
-{
-
 }
 
 void AHandController::Grip()
@@ -211,7 +246,25 @@ void AHandController::Grip()
 					CurrentItem->K2_AddActorLocalOffset(FVector(0.f, -6.f, 0.f), false, Fhit, false);
 				}
 				
-				bObjectInHand = true;
+				bSwordInHand = true;
+				CurrentItem->bHoldingSword = true;
+			}
+			if (OverlappingActor->ActorHasTag(TEXT("Saber")) && !bObjectInHand && !bWeaponinHand) {
+				CurrentItem->PickUp();
+				FAttachmentTransformRules FattachRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
+				CurrentItem->AttachToComponent(MotionController, FattachRules, NAME_None);
+				FHitResult Fhit;
+				CurrentItem->AddActorLocalRotation(FRotator(0, 90.f, 60.f), false);
+				if (MotionController->Hand_DEPRECATED == EControllerHand::Right) {
+					CurrentItem->K2_AddActorLocalOffset(FVector(0.f, -5.f, 0.f), false, Fhit, false);
+				}
+				else if (MotionController->Hand_DEPRECATED == EControllerHand::Left)
+				{
+					CurrentItem->K2_AddActorLocalOffset(FVector(0.f, -5.f, 0.f), false, Fhit, false);
+				}
+
+				bSwordInHand = true;
+				CurrentItem->bHoldingSword = true;
 			}
 			if (OverlappingActor->ActorHasTag(TEXT("Weapon")) && !bObjectInHand && !bWeaponinHand) {
 				CurrentWeapon->PickUp();
@@ -269,13 +322,22 @@ void AHandController::Release()
 	if (bObjectInHand) {
 		CurrentItem->Drop();
 		CurrentItem->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		CurrentItem = nullptr;
 		bObjectInHand = false;
 	}
 	if(bWeaponinHand){
 		CurrentWeapon->StopFire();
 		CurrentWeapon->Drop();
 		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		CurrentWeapon = nullptr;
 		bWeaponinHand = false;	
+	}
+	if (bSwordInHand) {
+		CurrentItem->Drop();
+		CurrentItem->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		CurrentItem->bHoldingSword = false;
+		CurrentItem = nullptr;
+		bSwordInHand = false;
 	}
 }
 
@@ -284,6 +346,19 @@ void AHandController::SetStateFalling()
 	ACharacter* Character = Cast<ACharacter>(GetAttachParentActor());
 	if (Character != nullptr) {
 		Character->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
+	}
+}
+
+void AHandController::Interact()
+{
+	if (CurrentWeapon != nullptr) {
+		WeaponFire();
+	}
+	
+	if (CurrentItem != nullptr) {
+		if (!bSwordInHand) { return; }
+
+		CurrentItem->Interact();
 	}
 }
 
@@ -296,6 +371,7 @@ void AHandController::WeaponFire()
 	if(!bWeaponinHand){	return;	}
 
 	CurrentWeapon->StartFire();
+	
 }
 
 void AHandController::WeaponStop()

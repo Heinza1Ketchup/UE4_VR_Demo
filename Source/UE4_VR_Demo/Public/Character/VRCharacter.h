@@ -97,12 +97,12 @@ protected:
 	void GripRight()	{	RightController->Grip();	}
 	void ReleaseRight()	{	RightController->Release();	}
 	//Fire
-	void InteractLeft() { LeftController->WeaponFire(); }
-	void InteractRight() { RightController->WeaponFire(); }
+	void InteractLeft();
+	void InteractRight();
 	void InteractLeftRelease() { LeftController->WeaponStop(); }
 	void InteractRightRelease() { RightController->WeaponStop(); }
 
-
+	void ForcePullPressed();
 	
 
 public:

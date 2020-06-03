@@ -98,7 +98,14 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("GrabLeft", IE_Released, this, &AVRCharacter::ReleaseLeft);
 	PlayerInputComponent->BindAction("GrabRight", IE_Pressed, this, &AVRCharacter::GripRight);
 	PlayerInputComponent->BindAction("GrabRight", IE_Released, this, &AVRCharacter::ReleaseRight);
+	PlayerInputComponent->BindAction("ForcePull", IE_Pressed, this, &AVRCharacter::ForcePullPressed);
 }
+
+void AVRCharacter::ForcePullPressed()
+{
+
+}
+
 
 void AVRCharacter::MoveForward(float Value)
 {
@@ -285,3 +292,12 @@ void AVRCharacter::OnHealthChanged(USHealthComponent* OwningHealthComp, float He
 	}
 }
 
+void AVRCharacter::InteractLeft()
+{
+	LeftController->Interact();
+}
+
+void AVRCharacter::InteractRight()
+{
+	RightController->Interact();
+}
